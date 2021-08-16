@@ -15,7 +15,6 @@ First, clone our git repository.<br>
 git clone https://github.com/cvlab-yonsei/LbA.git
 cd LbA
 ```
-<br>
 
 ### Docker
 We will provide a Dockerfile to help reproducing our work easily soon.<br>
@@ -32,9 +31,9 @@ For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br
 ## Train
 * To train our full model, run `python train.py --method full`<br>
 
-> <span style="color:red">**Important:**</span><br>
-> * Performances reported during training does <u>**not**</u> reflect exact performances of your model. This is due to 1) evaluation protocols of the datasets and 2) random seed configurations.<br>
-> * Make sure you seperately run `test.py` to obtain correct result to be reported in your paper.<br>
+* **Important**<br>
+    * Performances reported during training does <u>**not**</u> reflect exact performances of your model. This is due to 1) evaluation protocols of the datasets and 2) random seed configurations.<br>
+    * Make sure you seperately run `test.py` to obtain correct result to be reported in your paper.<br>
 
 ## Test
 * To test our full model, run `python test.py --method full`<br>
