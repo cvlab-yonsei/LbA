@@ -17,8 +17,7 @@ cd LbA
 ```
 
 ### Docker
-We will provide a Dockerfile to help reproducing our work easily soon.<br>
-For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br>
+You can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br>
 
 ### Prepare datasets
 * SYSU-MM01: download via this [link](http://isee.sysu.edu.cn/project/RGBIRReID.htm).<br>
@@ -45,19 +44,16 @@ For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br
 | SYSU-MM01 | full | 54.14 | 55.41 |
 
 
-### Pretrained models
-* We will provide weights of our best model soon.<br>
-
 ## Bibtex
 ```
-@inproceedings
+@inproceedings{park2021learning,
+    author    = {Park, Hyunjong and Lee, Sanghoon and Lee, Junghyup and Ham, Bumsub},
+    title     = {Learning by Aligning: Visible-Infrared Person Re-identification using Cross-Modal Correspondences},
+    booktitle = {Proceedings of the IEEE/CVF International Conference on Computer Vision (ICCV)},
+    year      = {2021}
+    }
 ```
 <br>
-
-## Todo
-- [ ] provide dockerfile<br>
-- [ ] provide pretrained weights<br>
-- [ ] update bibtex<br>
 
 
 ## Credits
