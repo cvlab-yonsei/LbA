@@ -2,7 +2,7 @@
 
 This is an official PyTorch implementation of the paper "Learning by Aligning: Visible-Infrared Person Re-identification using Cross-Modal Correspondences", ICCV 2021.
 
-For more details, visit our [project site](https://cvlab.yonsei.ac.kr/projects/LbA/) or see our [paper]().
+For more details, visit our [project site](https://cvlab.yonsei.ac.kr/projects/LbA/) or see our [paper](https://arxiv.org/abs/2108.07422).
 
 ## Requirements
 * Python 3.8<br>
@@ -21,8 +21,8 @@ We will provide a Dockerfile to help reproducing our work easily soon.<br>
 For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br>
 
 ### Prepare datasets
-* SYSU-MM01: download via this [link]().<br>
-    * For SYSU-MM01, you need to preprocess the .jpg files into .npy files by running:<br> 
+* SYSU-MM01: download via this [link](http://isee.sysu.edu.cn/project/RGBIRReID.htm).<br>
+    * For SYSU-MM01, you need to preprocess the .jpg files into .npy files by running:<br>
         * `python utils/pre_preprocess_sysu.py --data_dir /path/to/SYSU-MM01`<br>
     * Modify the dataset directory below accordingly.<br>
         * L63 of `train.py`<br>
@@ -31,9 +31,9 @@ For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br
 ## Train
 * To train our full model, run `python train.py --method full`<br>
 
-* **Important**<br>
-    * Performances reported during training does <u>**not**</u> reflect exact performances of your model. This is due to 1) evaluation protocols of the datasets and 2) random seed configurations.<br>
-    * Make sure you seperately run `test.py` to obtain correct result to be reported in your paper.<br>
+* **Important:**<br>
+    * Performances reported during training does <ins>**not**</ins> reflect exact performances of your model. This is due to 1) evaluation protocols of the datasets and 2) random seed configurations.<br>
+    * Make sure you seperately run `test.py` to obtain correct results to be reported in your paper.<br>
 
 ## Test
 * To test our full model, run `python test.py --method full`<br>
@@ -57,7 +57,6 @@ For now, you can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br
 ## Todo
 - [ ] provide dockerfile<br>
 - [ ] provide pretrained weights<br>
-- [ ] update paper link<br>
 - [ ] update bibtex<br>
 
 
