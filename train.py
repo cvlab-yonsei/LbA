@@ -48,12 +48,12 @@ parser.add_argument('--mode', default='all', type=str, help='all or indoor')
 ### misc
 parser.add_argument('--seed', default=0, type=int, help='random seed')
 parser.add_argument('--nvidia_device', default=0, type=int, help='gpu device to use')
-parser.add_argument('--disable_tb', action='store_false', help='disable tensorboard logging')
+parser.add_argument('--enable_tb', action='store_true', help='enable tensorboard logging')
 
 args = parser.parse_args()
 os.environ['CUDA_VISIBLE_DEVICES'] = str(args.nvidia_device)
 
-if not args.disable_tb:
+if args.enable_tb:
     from tensorboardX import SummaryWriter
 
 set_seed(args.seed)
@@ -77,7 +77,7 @@ if not os.path.isdir(checkpoint_path):
 sys.stdout = Logger(os.path.join(log_path, 'os.txt'))
 
 # tensorboard
-if not args.disable_tb: 
+if args.enable_tb: 
     vis_log_dir = osp.join(log_path, 'vis_log')
     if not os.path.isdir(vis_log_dir):
         os.makedirs(vis_log_dir)
@@ -228,13 +228,14 @@ def train(epoch):
         loss_tri, batch_acc = criterion_tri(out['feat4_p'], labels)
 
         loss_id = criterion_id(out['cls_id'], labels) + loss_tri
-        loss = loss_id
-        
+
         if args.method == 'full':
             loss_ic = criterion_id(out['cls_ic_layer3'], labels) + criterion_id(out['cls_ic_layer4'], labels)
             loss_dt = out['loss_dt']
 
-            loss += loss_ic + args.lw_dt*loss_dt
+            loss = loss_id + loss_ic + args.lw_dt*loss_dt
+        else:
+            loss = loss_id
 
         correct += (batch_acc / 2)
         _, predicted = out['cls_id'].max(1)
@@ -287,7 +288,7 @@ def train(epoch):
                     acc=100.*correct/total)
                 )
 
-    if not args.disable_tb:
+    if args.enable_tb:
         writer.add_scalar('total_loss', train_loss_meter.avg, epoch)
         writer.add_scalar('id_loss', loss_id_meter.avg, epoch)
         writer.add_scalar('lr', current_lr, epoch)
@@ -341,7 +342,7 @@ def test(epoch):
         
     print('Evaluation Time:\t {:.3f}'.format(time.time() - start))
 
-    if not args.disable_tb:
+    if args.enable_tb:
         writer.add_scalar('rank1', cmc[0], epoch)
         writer.add_scalar('mAP', mAP, epoch)
         writer.add_scalar('mINP', mINP, epoch)

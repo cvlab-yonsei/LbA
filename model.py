@@ -44,101 +44,94 @@ class CMAlign(nn.Module):
         return {'pos': pos, 'neg': neg}
 
     def _define_pairs(self):
-        pairs_half1 = self._random_pairs()
-        pos_half1, neg_half1 = pairs_half1['pos'], pairs_half1['neg']
+        pairs_v = self._random_pairs()
+        pos_v, neg_v = pairs_v['pos'], pairs_v['neg']
 
-        pairs_half2 = self._random_pairs()
-        pos_half2, neg_half2 = pairs_half2['pos'], pairs_half2['neg']
+        pairs_t = self._random_pairs()
+        pos_t, neg_t = pairs_t['pos'], pairs_t['neg']
         
-        pos_half2 += self.batch_size*self.num_pos
-        neg_half2 += self.batch_size*self.num_pos
+        pos_t += self.batch_size*self.num_pos
+        neg_t += self.batch_size*self.num_pos
 
-        return {'pos': np.concatenate((pos_half2, pos_half1)), 'neg': np.concatenate((neg_half2, neg_half1))}
+        return {'pos': np.concatenate((pos_v, pos_t)), 'neg': np.concatenate((neg_v, neg_t))}
 
-    def feature_similarity(self, feat_source, feat_target):
-        batch_size, fdim, h, w = feat_source.shape
-        assert feat_source.shape == feat_target.shape
+    def feature_similarity(self, feat_q, feat_k):
+        batch_size, fdim, h, w = feat_q.shape
+        feat_q = feat_q.view(batch_size, fdim, -1)
+        feat_k = feat_k.view(batch_size, fdim, -1)
+
+        feature_sim = torch.bmm(F.normalize(feat_q, dim=1).permute(0,2,1), F.normalize(feat_k, dim=1))
+        return feature_sim
+
+    def matching_probability(self, feature_sim):
+        M, _ = feature_sim.max(dim=-1, keepdim=True)
+        feature_sim = feature_sim - M # for numerical stability
+        exp = torch.exp(self.temperature*feature_sim)
+        exp_sum = exp.sum(dim=-1, keepdim=True)
+        return exp / exp_sum
+
+    def soft_warping(self, matching_pr, feat_k):
+        batch_size, fdim, h, w = feat_k.shape
+        feat_k = feat_k.view(batch_size, fdim, -1)
+        feat_warp = torch.bmm(matching_pr, feat_k.permute(0,2,1))
+        feat_warp = feat_warp.permute(0,2,1).view(batch_size, fdim, h, w)
         
-        feat_target = feat_target.view(batch_size, fdim, -1)
-        feat_source = feat_source.view(batch_size, fdim, -1)
+        return feat_warp
 
-        feat_target = F.normalize(feat_target, p=2.0, dim=1, eps=1e-12).permute(0,2,1)
-        feat_source = F.normalize(feat_source, p=2.0, dim=1, eps=1e-12)
-
-        feature_similarity = torch.bmm(feat_target, feat_source)
-        return feature_similarity
-
-    def matching_probability(self, feature_similarity):
-        return F.softmax(feature_similarity*self.temperature, dim=2)
-
-    def soft_warping(self, matching_probability, feat_source):
-        batch_size, fdim, h, w = feat_source.shape
-        feat_flatten = feat_source.view(batch_size, fdim, -1).permute(0,2,1)
-        warped_flatten = torch.bmm(matching_probability, feat_flatten)
-        return warped_flatten.permute(0,2,1).view(batch_size, fdim, h, w)
-
-    def reconstruction(self, feat_warped, feat_target):
-        mask = self.compute_mask(feat_target)
-        reconstruction = mask*feat_warped + (1-mask)*feat_target
-        return reconstruction
+    def reconstruct(self, mask, feat_warp, feat_q):
+        return mask*feat_warp + (1.0-mask)*feat_q
 
     def compute_mask(self, feat):
         batch_size, fdim, h, w = feat.shape
-        feat = feat.view(batch_size, fdim, -1)
-        norm = torch.norm(feat, dim=1)
-
-        # min-max normalization
-        norm -= norm.min(dim=1, keepdim=True)[0]
-        norm /= norm.max(dim=1, keepdim=True)[0] + 1e-12
-
-        mask = norm.view(batch_size, -1, h, w)
+        norms = torch.norm(feat, p=2, dim=1).view(batch_size, h*w)
+        
+        norms -= norms.min(dim=-1, keepdim=True)[0]
+        norms /= norms.max(dim=-1, keepdim=True)[0] + 1e-12
+        mask = norms.view(batch_size, 1, h, w)
+        
         return mask.detach()
 
-    def compute_comask(self, matching_probability, mask_source, mask_target):
-        batch_size, fdim, h, w = mask_target.shape
-        assert mask_source.shape == mask_target.shape
-
-        mask_source_flatten = mask_source.view(batch_size, fdim, -1).permute(0,2,1)
-        mask_source_warp_flatten = torch.bmm(matching_probability, mask_source_flatten).detach()
+    def compute_comask(self, matching_pr, mask_q, mask_k):
+        batch_size, mdim, h, w = mask_q.shape
+        mask_q = mask_q.view(batch_size, -1, 1)
+        mask_k = mask_k.view(batch_size, -1, 1)
+        comask = mask_q * torch.bmm(matching_pr, mask_k)
         
-        comask = mask_source_warp_flatten.permute(0,2,1).view(batch_size, fdim, h, w) * mask_target
-        comask_flatten = comask.view(batch_size, -1)
+        comask = comask.view(batch_size, -1)
+        comask -= comask.min(dim=-1, keepdim=True)[0]
+        comask /= comask.max(dim=-1, keepdim=True)[0] + 1e-12
+        comask = comask.view(batch_size, mdim, h, w)
+        
+        return comask.detach()
 
-        # min-max normalization
-        comask_flatten -= comask_flatten.min(dim=1, keepdim=True)[0]
-        comask_flatten /= comask_flatten.max(dim=1, keepdim=True)[0] + 1e-12
+    def forward(self, feat_v, feat_t):
+        feat = torch.cat([feat_v, feat_t], dim=0)
+        mask = self.compute_mask(feat)
+        batch_size, fdim, h, w = feat.shape
 
-        comask = comask_flatten.view(batch_size, fdim, h, w)
-        return comask
-
-    def _forward(self, feat):
         pairs = self._define_pairs()
         pos_idx, neg_idx = pairs['pos'], pairs['neg']
 
         # positive
-        feature_similarity = self.feature_similarity(feat, feat[pos_idx])
-        matching_probability = self.matching_probability(feature_similarity)
-        warped_feat = self.soft_warping(matching_probability, feat)
-        recon_feat_pos = self.reconstruction(warped_feat, feat)
-
-        mask_source = self.compute_mask(feat)
-        comask = self.compute_comask(matching_probability, mask_source, mask_source[pos_idx])
+        feat_target_pos = feat[pos_idx]
+        feature_sim = self.feature_similarity(feat, feat_target_pos)
+        matching_pr = self.matching_probability(feature_sim)
+        
+        comask_pos = self.compute_comask(matching_pr, mask, mask[pos_idx])
+        feat_warp_pos = self.soft_warping(matching_pr, feat_target_pos)
+        feat_recon_pos = self.reconstruct(mask, feat_warp_pos, feat)
 
         # negative
-        feature_similarity = self.feature_similarity(feat, feat[neg_idx])
-        matching_probability = self.matching_probability(feature_similarity)
-        warped_feat = self.soft_warping(matching_probability, feat)
-        recon_feat_neg = self.reconstruction(warped_feat, feat)
-
-        # compute dense triplet loss
-        loss = torch.mean(comask * self.criterion(feat, recon_feat_pos, recon_feat_neg))
-
-        return recon_feat_pos, loss
+        feat_target_neg = feat[neg_idx]
+        feature_sim = self.feature_similarity(feat, feat_target_neg)
+        matching_pr = self.matching_probability(feature_sim)
         
-    def forward(self, feat_v, feat_t):
-        feat = torch.cat([feat_v, feat_t], dim=0)
-        recon, loss = self._forward(feat)
-        return {'feat': recon, 'loss': loss}
+        feat_warp = self.soft_warping(matching_pr, feat_target_neg)
+        feat_recon_neg = self.reconstruct(mask, feat_warp, feat)
+
+        loss = torch.mean(comask_pos * self.criterion(feat, feat_recon_pos, feat_recon_neg))
+
+        return {'feat': feat_recon_pos, 'loss': loss}
 
 # #####################################################################
 def weights_init_kaiming(m):
