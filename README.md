@@ -53,10 +53,11 @@ You can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br>
 
 ## Bibtex
 ```
-@article{park2021learning,
+@inproceedings{park2021learning,
   title={Learning by Aligning: Visible-Infrared Person Re-identification using Cross-Modal Correspondences},
   author={Park, Hyunjong and Lee, Sanghoon and Lee, Junghyup and Ham, Bumsub},
-  journal={arXiv preprint arXiv:2108.07422},
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={12046--12055},
   year={2021}
 }
 ```
