@@ -50,8 +50,8 @@ class CMAlign(nn.Module):
         pairs_t = self._random_pairs()
         pos_t, neg_t = pairs_t['pos'], pairs_t['neg']
         
-        pos_t += self.batch_size*self.num_pos
-        neg_t += self.batch_size*self.num_pos
+        pos_v += self.batch_size*self.num_pos
+        neg_v += self.batch_size*self.num_pos
 
         return {'pos': np.concatenate((pos_v, pos_t)), 'neg': np.concatenate((neg_v, neg_t))}
 
