@@ -17,7 +17,7 @@ cd LbA
 ```
 
 ### Docker
-You can use `docker pull sanghslee/ps:1.7.1-cuda11.0-cudnn8-runtime`<br>
+We provide a Dockerfile to help reproducing our results easily.<br>
 
 ### Prepare datasets
 * SYSU-MM01: download from this [link](http://isee.sysu.edu.cn/project/RGBIRReID.htm).<br>
